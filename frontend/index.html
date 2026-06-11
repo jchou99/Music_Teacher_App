@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cadenza - Music Studio Manager</title>
+
+  <!-- Content Security Policy allowing connect-src for unpkg source maps and API backend -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://unpkg.com;
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+    font-src 'self' https://fonts.gstatic.com;
+    connect-src 'self' http://127.0.0.1:8000 https://unpkg.com;
+  ">
+
+  <!-- Instantly apply custom studio theme from localStorage to prevent visual flashes -->
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem("cadenza_theme");
+      if (savedTheme) {
+        try {
+          const theme = JSON.parse(savedTheme);
+          const root = document.documentElement;
+          root.style.setProperty('--theme-bg', theme.bg);
+          root.style.setProperty('--theme-text', theme.text);
+          root.style.setProperty('--theme-border', theme.border);
+          root.style.setProperty('--theme-card-bg', theme.cardBg);
+          root.style.setProperty('--theme-card-bg-alt', theme.cardBgAlt);
+          root.style.setProperty('--theme-brand', theme.brand);
+          root.style.setProperty('--theme-brand-hover', theme.brandHover || theme.brand);
+        } catch (e) {
+          console.error("Theme preload failed:", e);
+        }
+      }
+    })();
+  </script>
+
+  <!-- 1. Core CDN Libraries (Imported once in the head) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Google Fonts setup -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap"
+    rel="stylesheet">
+
+  <!-- Custom Tailwind config integration -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            serif: ['"Playfair Display"', 'serif'],
+          },
+          colors: {
+            slate: {
+              50: '#0f2523',
+              100: '#132c2a',
+              200: '#1e3d3a',
+              300: '#2a4f4c',
+              400: '#3a5d5a',
+              500: '#4d7c79',
+              600: '#e5f7f6',
+              700: '#099c97',
+              800: '#ffffff',
+              900: '#eef8f8',
+            },
+            brand: {
+              50: '#f0fbfb',
+              100: '#d1f4f2',
+              200: '#a3ede9',
+              300: '#75e6e0',
+              400: '#47ded7',
+              500: '#19d7ce',
+              600: '#0abab5',
+              700: '#099c97',
+              800: '#077d79',
+              900: '#055e5b',
+            },
+            purple: {
+              50: '#f0fbfb',
+              100: '#d1f4f2',
+              200: '#a3ede9',
+              300: '#75e6e0',
+              400: '#47ded7',
+              500: '#19d7ce',
+              600: '#0abab5',
+              700: '#099c97',
+              800: '#077d79',
+              900: '#055e5b',
+            },
+            indigo: {
+              50: '#f0fbfb',
+              100: '#d1f4f2',
+              200: '#a3ede9',
+              300: '#75e6e0',
+              400: '#0abab5',
+              500: '#099c97',
+              600: '#099c97',
+              700: '#077d79',
+              800: '#055e5b',
+              900: '#04403e',
+            },
+            red: {
+              500: '#e05a4f',
+              600: '#c54237',
+            },
+            amber: {
+              400: '#a15300',
+              500: '#b25e00',
+            },
+            emerald: {
+              400: '#047857',
+              500: '#065f46',
+            },
+            white: '#132c2a',
+          },
+          animation: {
+            'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Global fallback overrides and styling rules mapping to CSS variables -->
+  <style>
+    :root {
+      --theme-bg: #eef8f8;
+      --theme-text: #132c2a;
+      --theme-border: #099c97;
+      --theme-card-bg: #ffffff;
+      --theme-card-bg-alt: #f0fbfb;
+      --theme-brand: #0abab5;
+      --theme-brand-hover: #099c97;
+    }
+
+    body {
+      background-color: var(--theme-bg) !important;
+      color: var(--theme-text) !important;
+      overflow-x: hidden;
+    }
+
+    /* Force consistent border colors */
+    .border-slate-800,
+    .border-slate-700,
+    .border,
+    input,
+    select,
+    textarea,
+    header,
+    footer,
+    .dropdown-box,
+    .bg-slate-800\/40,
+    .bg-slate-900\/60,
+    .bg-slate-900\/40,
+    .bg-slate-900\/80,
+    .bg-slate-800\/50,
+    .bg-slate-900 {
+      border: 1.5px solid var(--theme-border) !important;
+    }
+
+    /* Cards background */
+    .bg-slate-800\/40, .bg-slate-800\/50, header, footer, .bg-slate-800, .bg-slate-900 {
+      background-color: var(--theme-card-bg) !important;
+    }
+
+    /* Alternate Card backgrounds */
+    .bg-slate-900\/60, .bg-slate-900\/40, .bg-slate-900\/80, .bg-slate-950, .bg-slate-900\/10 {
+      background-color: var(--theme-card-bg-alt) !important;
+    }
+
+    /* Text overrides */
+    h1, h2, h3, h4, h5, h6, .text-white, .text-slate-100 {
+      color: var(--theme-text) !important;
+    }
+
+    .text-slate-300, .text-slate-400, .text-slate-200 {
+      color: var(--theme-text) !important;
+      opacity: 0.8;
+    }
+
+    /* Brand Background Colors (active tabs, action buttons) */
+    .bg-purple-600 {
+      background-color: var(--theme-brand) !important;
+    }
+    .hover\:bg-purple-500:hover, .bg-purple-600:hover, .hover\:bg-indigo-500:hover, .bg-indigo-600:hover {
+      background-color: var(--theme-brand-hover) !important;
+    }
+
+    /* Brand Text and Icons */
+    .text-purple-600, .text-indigo-800, .text-purple-900, .text-indigo-400, .text-purple-400 {
+      color: var(--theme-brand) !important;
+    }
+
+    /* Standardize standard form inputs and dropdowns to be exactly identical in physical dimensions */
+    input[type="text"],
+    input[type="number"],
+    input[type="date"],
+    input[type="time"],
+    input[type="datetime-local"],
+    select {
+      height: 40px !important;
+      box-sizing: border-box !important;
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+      padding-left: 12px !important;
+      padding-right: 12px !important;
+      margin: 0 !important;
+      vertical-align: middle !important;
+      background-color: var(--theme-card-bg) !important;
+      color: var(--theme-text) !important;
+      border: 1.5px solid var(--theme-border) !important;
+    }
+
+    /* Enforce matching heights on side-by-side action buttons */
+    .btn-align {
+      height: 40px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+
+    /* Darkened placeholder text for high contrast readability */
+    input[type="text"]::placeholder,
+    textarea::placeholder {
+      color: var(--theme-text) !important;
+      opacity: 0.6;
+    }
+
+    .weekly-day-header {
+      border: none !important;
+      border-bottom: 2px solid var(--theme-border) !important;
+      padding-bottom: 0.5rem !important;
+      margin-bottom: 0.5rem !important;
+      display: block !important;
+    }
+
+    .dropdown-box {
+      background-color: var(--theme-card-bg) !important;
+      box-shadow: 0 10px 15px -3px rgba(10, 186, 181, 0.15) !important;
+    }
+
+    .tag-festival {
+      background-color: #fee2e2 !important;
+      color: #991b1b !important;
+      border: 1px solid #fca5a5 !important;
+    }
+
+    .tag-recital {
+      background-color: #f3e8ff !important;
+      color: #6b21a8 !important;
+      border: 1px solid #d8b4fe !important;
+    }
+
+    .tag-exam {
+      background-color: #fef3c7 !important;
+      color: #92400e !important;
+      border: 1px solid #fcd34d !important;
+    }
+
+    .tag-masterclass {
+      background-color: #d1fae5 !important;
+      color: #065f46 !important;
+      border: 1px solid #6ee7b7 !important;
+    }
+
+    .weekly-day-header {
+      border: none !important;
+      border-bottom: 2px solid var(--theme-border) !important;
+      padding-bottom: 0.5rem !important;
+      margin-bottom: 0.5rem !important;
+      display: block !important;
+    }
+
+    .search-container-active input[type="text"] {
+      border-bottom-left-radius: 0px !important;
+      border-bottom-right-radius: 0px !important;
+      border-bottom-width: 0px !important;
+      box-shadow: none !important;
+    }
+
+    .search-container-active .dropdown-box {
+      margin-top: 0px !important;
+      border-top-left-radius: 0px !important;
+      border-top-right-radius: 0px !important;
+      border-top: 0px !important;
+    }
+
+    .tag-vacation {
+      background-color: #e0f2fe !important;
+      color: #0369a1 !important;
+      border: 1px solid #7dd3fc !important;
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--theme-bg);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--theme-border);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--theme-brand);
+    }
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+
+  <!-- 2. Centralized Utilities & API Service (Defines window.apiService and window.utils) -->
+  <script type="text/babel" src="apiService.js"></script>
+
+  <!-- 3. Base Icon Primitive (Required by other UI components) -->
+  <script type="text/babel" src="components/Icon.js"></script>
+
+  <!-- 4. Modals and Secondary Views -->
+  <script type="text/babel" src="components/ScheduleModal.js"></script>
+  <script type="text/babel" src="components/LevelModal.js"></script>
+  <script type="text/babel" src="components/ContactModal.js"></script>
+
+  <!-- 5. Major High-Level Page Views (Mounting BillingPage.js between Calendar and SettingsPage) -->
+  <script type="text/babel" src="components/TeacherDashboard.js"></script>
+  <script type="text/babel" src="components/StudentPage.js"></script>
+  <script type="text/babel" src="components/CalendarPage.js"></script>
+  <script type="text/babel" src="components/BillingPage.js"></script>
+  <script type="text/babel" src="components/SettingsPage.js"></script>
+
+  <!-- 6. Main Application Entry Point & Orchestration -->
+  <script type="text/babel" src="app.js"></script>
+</body>
+
+</html>
